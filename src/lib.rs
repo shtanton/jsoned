@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use skulpin::app::AppDrawArgs;
 use skulpin::skia_safe::{Point, Rect};
 
@@ -75,6 +77,21 @@ impl JsonBuffer {
 				},
 				_ => *index,
 			}
+		});
+		self.selections = new_selections.collect();
+	}
+	pub fn select_all_children(&mut self) {
+		let new_selections = self.selections.iter().flat_map(|index: &usize| {
+			let iter: Box<dyn Iterator<Item=usize>> = match &self.nodes[*index].variant {
+				JsonVariant::Null
+					| JsonVariant::Bool(_)
+					| JsonVariant::Number(_)
+					| JsonVariant::String(_) => Box::new(once(*index)),
+				JsonVariant::ObjectEntry(_, child) => Box::new(once(*child)),
+				JsonVariant::Array(children) => Box::new(children.iter().map(|c: &usize| *c)),
+				JsonVariant::Object(children) => Box::new(children.iter().map(|c: &usize| *c)),
+			};
+			iter
 		});
 		self.selections = new_selections.collect();
 	}
