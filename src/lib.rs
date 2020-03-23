@@ -317,4 +317,20 @@ impl JsonBuffer {
 			}
 		}
 	}
+	pub fn stringify(&mut self) {
+		for selection_index in self.selections.iter() {
+			match self.nodes[*selection_index].variant {
+				JsonVariant::Null | JsonVariant::Array(_) | JsonVariant::Object(_) => {
+					self.nodes[*selection_index].variant = JsonVariant::String("".to_string());
+				},
+				JsonVariant::Bool(b) => {
+					self.nodes[*selection_index].variant = JsonVariant::String(b.to_string());
+				},
+				JsonVariant::Number(n) => {
+					self.nodes[*selection_index].variant = JsonVariant::String(n.to_string());
+				},
+				JsonVariant::String(_) | JsonVariant::ObjectEntry(_, _) => {},
+			}
+		}
+	}
 }

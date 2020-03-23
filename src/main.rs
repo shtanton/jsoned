@@ -462,6 +462,8 @@ impl Buffer for JsonBuffer {
 					self.objectify();
 				} else if input_state.is_key_just_down(VirtualKeyCode::R) {
 					self.new_first_child();
+				} else if input_state.is_key_just_down(VirtualKeyCode::S) {
+					self.stringify();
 				}
 			},
 			JsonBufferMode::Insert => {
