@@ -106,6 +106,32 @@ impl JsonBuffer {
 					new_selections.push(new_index);
 				},
 				JsonVariant::Object(ref mut children) => {
+					if children.len() == 0 {
+						children.push(new_index);
+						self.nodes.push(JsonNode {
+							variant: JsonVariant::ObjectEntry("".to_string(), new_index+1),
+							parent: *selection_index,
+							left: *selection_index,
+							right: *selection_index,
+						});
+					} else {
+						let old_first = children[0];
+						children.insert(0, new_index);
+						self.nodes.push(JsonNode {
+							variant: JsonVariant::ObjectEntry("".to_string(), new_index+1),
+							parent: *selection_index,
+							left: *selection_index,
+							right: old_first,
+						});
+						self.nodes[old_first].left = new_index;
+					}
+					self.nodes.push(JsonNode {
+						variant: JsonVariant::Null,
+						parent: new_index,
+						left: new_index,
+						right: new_index,
+					});
+					new_selections.push(new_index);
 				},
 				_ => {
 					new_selections.push(*selection_index);
@@ -258,6 +284,35 @@ impl JsonBuffer {
 					}
 				},
 				_ => {
+				},
+			}
+		}
+	}
+	pub fn objectify(&mut self) {
+		for selection_index in self.selections.iter() {
+			match self.nodes[*selection_index].variant {
+				JsonVariant::Bool(_) | JsonVariant::String(_) | JsonVariant::Number(_) | JsonVariant::Null => {
+					self.nodes[*selection_index].variant = JsonVariant::Object(Vec::new());
+				},
+				JsonVariant::ObjectEntry(_, _) | JsonVariant::Object(_) => {},
+				JsonVariant::Array(ref children) => {
+					let first_new_index = self.nodes.len();
+					let last_new_index = first_new_index + children.len() - 1;
+					let (new_children, mut new_nodes): (Vec<_>, Vec<_>) = children
+						.iter()
+						.enumerate()
+						.map(|(id, child)| (id+first_new_index, child))
+						.map(|(index, child)| {
+							(index, JsonNode {
+								variant: JsonVariant::ObjectEntry("".to_string(), *child),
+								parent: *selection_index,
+								left: if index==first_new_index {*selection_index} else {index-1},
+								right: if index==last_new_index {*selection_index} else {index+1},
+							})
+						})
+						.unzip();
+					self.nodes[*selection_index].variant = JsonVariant::Object(new_children);
+					self.nodes.append(&mut new_nodes);
 				},
 			}
 		}
